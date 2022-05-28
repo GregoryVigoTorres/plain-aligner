@@ -1,1 +1,1 @@
-from .main import align, AlignerError
+from .aligner import align, AlignerError
