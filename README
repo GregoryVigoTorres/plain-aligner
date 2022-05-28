@@ -1,0 +1,20 @@
+Plain Aligner is a very plain bilingual text aligner that transforms plain text files with the same number of lines into a TMX.
+
+It has no external dependencies besides click.
+
+Pytest is required to run the tests.
+
+Usage: palign [OPTIONS] DEST
+  All options are required
+Options:
+  languages should be ISO language codes e.g. es-ES
+
+  -tf, --tar-file PATH TO SOURCE FILE
+  -sf, --src-file PATH TO TARGET FILE
+  -tl, --tar-lang
+  -sl, --src-lang
+  --help
+
+
+Copyright 2022 Gregory Vigo Torres
+License: GPLv3
