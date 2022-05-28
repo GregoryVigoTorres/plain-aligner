@@ -1,0 +1,4 @@
+This is a segment from the TARGET file.
+This is the second segment.
+And there's another segment here!
+THIS SEGMENT SHOULD NOT REALLY BE HERE!
