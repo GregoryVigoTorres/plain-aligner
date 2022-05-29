@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 from datetime import datetime
+import xml.dom
 from xml.etree import ElementTree as ET
 from xml.sax.saxutils import escape
 
@@ -38,52 +39,70 @@ def bitext_lines(src_file, tar_file):
 
 
 class TmxFactory():
-    def __init__(self, src_lang, tar_lang, bitext_lines, src_path, tar_path):
-        self.root = ET.Element('tmx', attrib={'version': config.TMX_VERSION})
-        self.header = ET.SubElement(self.root, 'header', attrib=config.HEADER_ATTRS)
-        self.header.set('srclang', src_lang)
-        self.body = ET.SubElement(self.root, 'body')
+    def __init__(self, src_lang, tar_lang, bitext_lines):
+        """source and target lang should be ISO codes e.g. es-ES
+        bitext_lines must be an interable with pairs of (source, target) strings
+        """
+        dtd = self.mk_doctype()
+        self.doc = self.dom.createDocument(None, 'tmx', dtd)
+        self.doc.encoding = 'UTF-8'
+        self.root = self.doc.documentElement
+        self.root.setAttribute('version', config.TMX_VERSION)
+        header = self.doc.createElement('header')
+        header = self.root.appendChild(header)
+        self.set_attrs(header, config.HEADER_ATTRS)
+        header.setAttribute('srclang', src_lang)
+        self.body = self.doc.createElement('body')
+        self.root.appendChild(self.body)
+
         self.creationdate = datetime.today().strftime(config.ISO_8601_FMT)
-
-        self.src_path = Path(src_path).name
-        self.tar_path = Path(tar_path).name
-
         self.src_lang = src_lang
         self.tar_lang = tar_lang
-        self.bitext_lines = bitext_lines
-        self.append_tus()
-        self.tree = ET.ElementTree(self.root)
+        self.append_tus(bitext_lines)
 
-    def append_tuv(self, tu, text, lang, path):
-        tuv = ET.SubElement(tu, 'tuv',
-                            attrib={'xml:lang': lang,
-                                    'creationdate': self.creationdate,
-                                    'creationtool': 'plain_aligner'})
-        note = ET.SubElement(tuv, 'note')
-        note.text = f'segmentsource:"{path}"'
-        seg = ET.SubElement(tuv, 'seg')
-        seg.text = escape(text)
+    def set_attrs(self, elem, attrs):
+        for k, v in attrs.items():
+            elem.setAttribute(k, v)
 
-    def append_tus(self):
-        for s, t in self.bitext_lines:
-            tu = ET.SubElement(self.body, 'tu',
-                               attrib={'srclang': self.src_lang})
-            self.append_tuv(tu, s, self.src_lang, self.src_path)
-            self.append_tuv(tu, t, self.tar_lang, self.tar_path)
+    def append_tuv(self, tu, text, lang):
+        attrib = {'xml:lang': lang,
+                  'creationdate': self.creationdate,
+                  'creationtool': 'plain_aligner'}
+        tuv = self.doc.createElement('tuv')
+        self.set_attrs(tuv, attrib)
+        seg = self.doc.createElement('seg')
+        tnode = self.doc.createTextNode(escape(text))
+        seg.appendChild(tnode)
+        tuv.appendChild(seg)
+        tu.appendChild(tuv)
+
+    def append_tus(self, bitext_lines):
+        for s, t in bitext_lines:
+            tu = self.doc.createElement('tu')
+            tu.setAttribute('srclang', self.src_lang)
+            self.body.appendChild(tu)
+            self.append_tuv(tu, s, self.src_lang)
+            self.append_tuv(tu, t, self.tar_lang)
+
+    def mk_doctype(self):
+        self.dom = xml.dom.getDOMImplementation()
+        tmxdoctype = self.dom.createDocumentType("tmx",
+                                                 None,
+                                                 config.TMX_DTD_NAME)
+        return tmxdoctype
 
     def save(self, path=None):
         if not isinstance(path, Path):
             path = Path(path)
         if not path.suffix == '.tmx':
             path = path.with_suffix('.tmx')
-        with path.open('wb') as fd:
-            self.tree.write(fd, encoding='utf-8',
-                            xml_declaration=True,
-                            short_empty_elements=False)
+        try:
+            with path.open('w') as fd:
+                self.doc.writexml(fd, addindent='  ', encoding='utf-8')
+        except Exception as E:
+            log.error(E)
 
 
 def align(src_lang, tar_lang, src_file, tar_file):
-    """This is done like this to make testing easier"""
     return TmxFactory(src_lang, tar_lang,
-                      bitext_lines(src_file, tar_file),
-                      src_file, tar_file)
+                      bitext_lines(src_file, tar_file))

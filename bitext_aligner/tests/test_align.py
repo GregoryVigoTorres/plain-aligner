@@ -6,11 +6,10 @@ from bitext_aligner import align, AlignerError
 # This doesn't test whether the tmx is actually valid
 
 
-def test_align_files(src_path, tar_path):
+def test_aligner_aligns(src_path, tar_path):
     try:
         tmx = align('en-US', 'en-GB', src_path, tar_path)
-        body = tmx.tree.find('body')
-        tus = body.findall('tu')
+        tus = tmx.body.getElementsByTagName('tu')
         assert len(tus) > 0
     except Exception as E:
         raise E
