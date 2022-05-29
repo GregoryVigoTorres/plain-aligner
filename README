@@ -6,6 +6,7 @@ Pytest is required to run the tests.
 
 Usage: palign [OPTIONS] DEST
   All options are required
+
 Options:
   languages should be ISO language codes e.g. es-ES
 
@@ -15,6 +16,8 @@ Options:
   -sl, --src-lang
   --help
 
+  DEST is the path to the TMX
+
 
 Copyright 2022 Gregory Vigo Torres
-License: GPLv3
+Plain Aligner is released under the GPL version 3 license.
